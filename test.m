@@ -3,7 +3,7 @@ centroids = [54,34,27;59,53,29;23,3,47;48,3,5;30,80,42;64,11,67;6,69,68;80,78,9;
 shape = [80 100 120];
 
 %% COMPUTE
-labels = voronoi_labels(centroids, shape);
+labels = voronoi_labeln(centroids, shape);
 
 %% DRAW
 fh = figure();

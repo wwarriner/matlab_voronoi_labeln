@@ -1,4 +1,4 @@
-# Voronoi Labels
+# Voronoi Label N
 Tool for drawing a Voronoi label matrix given a set of centroids. Creates an N-D Voronoi diagram label matrix from input centroid coordinates. May be used directly on pixel coordinate centroids, or used on arbitrary numeric coordinate centroids with args 2-4.
 
 ## Two methods are available:
