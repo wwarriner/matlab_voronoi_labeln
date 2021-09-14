@@ -5,39 +5,40 @@ on pixel coordinate centroids, or used on arbitrary numeric coordinate
 centroids.
 
 Inputs:
-    1. centroids - A M-by-N numeric array of centroid coordinates. M is centroids, N is spatial
-        dimensions.
-    2. shape - A numeric N-vector giving the desired output shape in pixels. Optional, default max of input centroids in pixel units,
-        use []. If a shape is provided, all centroids MUST lie within the output
-        image. This is checked by converting centroids to pixel coordinates
-        using origin and element_length, then checking 1 <= centroids <= shape.
-    3. origin - A numeric N-vector giving the origin of the images in centroid
-        coordinates. Optional, defaults to zero vector, use [].
-    4. element_length - A numeric scalar giving the side length of a pixel in
-        centroid coordinates. Optional, defaults to 1.0, use [].
-    5. method - A scalar string-like denoting which method to use. Must be one
-        of "coordinates" or "watershed". Optional, defaults to "coordinates" for
-    accuracy.
+1. centroids - A M-by-N numeric array of centroid coordinates. M is centroids, N
+   is spatial dimensions.
+2. shape - A numeric N-vector giving the desired output shape in pixels.
+   Optional, default max of input centroids in pixel units, use []. If a shape
+   is provided, all centroids MUST lie within the output image. This is checked
+   by converting centroids to pixel coordinates using origin and element_length,
+   then checking 1 <= centroids <= shape.
+3. origin - A numeric N-vector giving the origin of the images in centroid
+   coordinates. Optional, defaults to zero vector, use [].
+4. element_length - A numeric scalar giving the side length of a pixel in
+   centroid coordinates. Optional, defaults to 1.0, use [].
+5. method - A scalar string-like denoting which method to use. Must be one of
+   "coordinates" or "watershed". Optional, defaults to "coordinates" for
+   accuracy.
 
 Two methods are available:
-    1. "coordinates" - uses a compute- and memory-intensive direct computation
-        of nearest centroid to each element. Labels all elements, biased towards smaller
-        valued labels when there is a tie. Complexity is O(M*N*P) where M is the
-        number of centroids, N is the number of dimensions, P is the number of
-        elements in the output image.
-    2. "watershed" - uses a faster, less-memory-intensive computation using
-        optimized image processing algorithms bwdist() and watershed(). Boundaries
-    between neighboring Voronoi cells are unlabeled, even when there is no
-    ambiguity about distance. Prefer this if boundary cells are unimportant.
+1. "coordinates" - uses a compute- and memory-intensive direct computation of
+   nearest centroid to each element. Labels all elements, biased towards smaller
+   valued labels when there is a tie. Complexity is O(M*N*P) where M is the
+   number of centroids, N is the number of dimensions, P is the number of
+   elements in the output image.
+2. "watershed" - uses a faster, less-memory-intensive computation using
+   optimized image processing algorithms bwdist() and watershed(). Boundaries
+   between neighboring Voronoi cells are unlabeled, even when there is no
+   ambiguity about distance. Prefer this if boundary cells are unimportant.
 
 Output:
-    1. labels - A uint32 array with the same size as input "shape".
+1. labels - A uint32 array with the same size as input "shape".
 
 Usage:
-    1. Pixel coordinates, call with 1st arg only, or with 1st and 5th (args 2-4
-        empty arrays).
-    2. Arbitrary coordinates, call with 2nd arg to give shape, 3rd to give
-        origin and 4th to scale pixels/voxels.
+1. Pixel coordinates, call with 1st arg only, or with 1st and 5th (args 2-4
+   empty arrays).
+2. Arbitrary coordinates, call with 2nd arg to give shape, 3rd to give origin
+   and 4th to scale pixels/voxels.
 %}
 
 assert(ismatrix(centroids));
@@ -121,4 +122,3 @@ assert(isreal(labels));
 assert(all(labels == fix(labels), "all"));
 
 end
-
