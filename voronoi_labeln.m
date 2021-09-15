@@ -1,4 +1,4 @@
-function labels = voronoi_labels(centroids, shape, origin, element_length, method)
+function labels = voronoi_labeln(centroids, shape, origin, element_length, method)
 %{
 Creates an N-D Voronoi diagram label matrix from input coordinates. May be used directly
 on pixel coordinate centroids, or used on arbitrary numeric coordinate
@@ -91,34 +91,130 @@ centroids = centroids .* element_length;
 assert(all(1 <= centroids, "all"));
 assert(all(centroids <= shape, "all"));
 
-im = false(shape);
-for i = 1 : centroid_count
-    indices = num2cell(centroids(i, :));
-    im(indices{:}) = true;
-end
-
 if strcmpi(method, "coordinates")
-    X = cell(size(shape));
-    S = arrayfun(@(x)1:x, shape, "uniformoutput", false);
-    [X{:}] = ndgrid(S{:});
-    X = cat(dimension_count + 1, X{:});
-    C = reshape(centroids.', [ones(1, dimension_count) dimension_count centroid_count]);
-    d = X - C;
-    d = d .^ 2;
-    d = sum(d, dimension_count + 1);
-    [~, labels] = min(d, [], dimension_count + 2);
-    labels = uint32(labels);
-    labels = squeeze(labels);
+    labels = direct_compute_labels(centroids, shape);
 elseif strcmpi(method, "watershed")
-    im = bwdist(im);
-    labels = watershed(im);
+    labels = compute_labels_watershed(centroids, shape);
+    indices = find(labels == 0);
+    labels(indices) = direct_compute_labels(centroids, shape, indices);
 else
     assert(false);
 end
+
+labels = uint32(labels);
+labels = squeeze(labels);
 
 assert(all(size(labels) == shape));
 assert(isnumeric(labels));
 assert(isreal(labels));
 assert(all(labels == fix(labels), "all"));
+assert(isempty(setdiff(1 : centroid_count, unique(labels))));
+
+end
+
+
+function labels = direct_compute_labels(centroids, shape, flat_indices)
+%{
+Here we go on a wild ride through layers of dimensionality!
+
+For N-D centroids, we end up doing calculations in N+2 dimensions. One through N
+are spatial dimensions. N+1 are coordinates at a given spatial location. N+2 are
+the list of centroids.
+
+So we end up with variable X as the actual coordinates of each point in space
+with size (X1,...,XN,N,1) for dimension N. These are implicitly replicated over
+all centroids as the trailing size of 1. Similarly, C is the centroid coordinates, replicated over each point in space with size
+(1,...,1,N,M) for M centroids of dimension N, where there are N leading sizes of
+1. The replication over space is implicit via the leading 1's. When we subtract
+C from X, MATLAB's implicit expansion fills in all the 1's correctly.
+
+If flat_indices is a vector of indices into the image implied by shape, then
+computation is performed only for those indices.
+%}
+
+if nargin < 3
+    flat_indices = [];
+end
+
+if ~isempty(flat_indices)
+    assert(isvector(flat_indices));
+    assert(isnumeric(flat_indices));
+    assert(all(flat_indices == fix(flat_indices)));
+    assert(all(1 <= flat_indices));
+    assert(all(flat_indices <= prod(shape)));
+end
+
+centroid_count = size(centroids, CENTROIDS);
+dimension_count = size(centroids, DIMENSIONS);
+
+X = cell(1, dimension_count);
+if ~isempty(flat_indices)
+    [X{:}] = ind2sub(shape, flat_indices);
+    X = cat(DIMENSIONS, X{:});
+    C = reshape(centroids.', [1 dimension_count centroid_count]);
+else
+    S = arrayfun(@(x)1:x, shape, "uniformoutput", false);
+    [X{:}] = ndgrid(S{:});
+    X = cat(dimension_count + 1, X{:});
+    C = reshape(centroids.', [ones(1, dimension_count) dimension_count centroid_count]);
+end
+labels = find_min_indices(X, C);
+
+end
+
+
+function labels = compute_labels_watershed(centroids, shape)
+%{
+Computes labels using a distance transform followed by watershed. Note the ridge
+lines are assigned zero, so we need to directly compute those boundaries.
+%}
+
+centroid_count = size(centroids, CENTROIDS);
+
+im = false(shape);
+for i = 1 : centroid_count
+    indices = num2cell(centroids(i, :));
+    im(indices{:}) = true;
+end
+im = bwdist(im);
+labels = watershed(im);
+    
+end
+
+
+function indices = find_min_indices(X, C)
+%{
+X has size (S,N,1) where S are spatial dimensions (one or more), N are coordinates, 1 may be
+implicit.
+
+C has size (1's,N,M) where there are as many 1's as S above, N as above, M
+arbitrary.
+%}
+
+assert(2 <= ndims(X));
+dimension_count = ndims(X) - 1;
+assert(ndims(C) - 2 == dimension_count);
+
+d = X - C; % difference of coordinates by implicit expansion
+d = d .^ 2; % euclidean distance (we don't need sqrt when taking min)
+d = sum(d, dimension_count + 1); % sum along coordinates
+[~, indices] = min(d, [], dimension_count + 2); % min along centroids
+
+space_count = prod(size(X, 1 : dimension_count));
+assert(numel(indices) == space_count);
+
+end
+
+
+function n = CENTROIDS()
+
+n = 1;
+
+end
+
+
+function n = DIMENSIONS()
+
+n = 2;
 
 end
